@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRAIOSA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            overflow: hidden;
+        }
+        
+        .avatar {
+            position: absolute;
+            width: 60px;
+            height: 80px;
+            transition: left 0.5s, top 0.5s;
+            cursor: pointer;
+            z-index: 10;
+            image-rendering: pixelated;
+        }
+        
+        .pixel-avatar {
+            width: 48px;
+            height: 64px;
+            position: relative;
+            image-rendering: pixelated;
+        }
+        
+        .chat-bubble {
+            position: absolute;
+            background: white;
+            border-radius: 10px;
+            padding: 8px 12px;
+            max-width: 150px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            word-wrap: break-word;
+            z-index: 20;
+            transform: translateY(-80px);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .chat-bubble:after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 10px 10px 0;
+            border-style: solid;
+            border-color: white transparent transparent;
+        }
+        
+        .game-object {
+            position: absolute;
+            z-index: 5;
+            cursor: pointer;
+        }
+        
+        .selection-highlight {
+            border: 3px solid #ffcc00;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 204, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0); }
+        }
+        
+        .water-animation {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(0deg, rgba(0,119,182,0.8) 0%, rgba(72,202,228,0.4) 100%);
+            z-index: 2;
+            animation: wave 8s infinite linear;
+        }
+        
+        @keyframes wave {
+            0% { transform: translateX(0) translateZ(0) scaleY(1); }
+            50% { transform: translateX(-25%) translateZ(0) scaleY(0.95); }
+            100% { transform: translateX(0) translateZ(0) scaleY(1); }
+        }
+        
+        .palm-tree {
+            position: absolute;
+            z-index: 3;
+        }
+        
+        .umbrella {
+            position: absolute;
+            z-index: 4;
+        }
+        
+        .sand-castle {
+            position: absolute;
+            z-index: 4;
+        }
+        
+        /* Estilo pixel art para os avatares */
+        .pixel-character {
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+        
+        /* Barras de necessidades */
+        .needs-container {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .need-bar-container {
+            width: 100%;
+            height: 6px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .need-bar {
+            height: 100%;
+            transition: width 0.5s;
+        }
+        
+        .need-thirst {
+            background-color: #3b82f6;
+        }
+        
+        .need-hunger {
+            background-color: #22c55e;
+        }
+        
+        .need-energy {
+            background-color: #eab308;
+        }
+        
+        .need-tan {
+            background-color: #f97316;
+        }
+        
+        .need-music {
+            background-color: #ec4899;
+        }
+        
+        .need-icon {
+            position: absolute;
+            left: -15px;
+            font-size: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        /* DJ Booth Animation */
+        .dj-booth {
+            position: absolute;
+            z-index: 5;
+        }
+        
+        .dj-animation {
+            animation: dj-bounce 0.5s infinite alternate;
+        }
+        
+        @keyframes dj-bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-5px); }
+        }
+        
+        .music-waves {
+            position: absolute;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        
+        .music-waves.active {
+            opacity: 1;
+        }
+        
+        @keyframes music-wave {
+            0% { transform: scale(1); opacity: 0.7; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        
+        .music-wave {
+            position: absolute;
+            border: 2px solid #ec4899;
+            border-radius: 50%;
+            animation: music-wave 2s infinite;
+        }
+        
+        .music-wave:nth-child(1) {
+            width: 20px;
+            height: 20px;
+            animation-delay: 0s;
+        }
+        
+        .music-wave:nth-child(2) {
+            width: 20px;
+            height: 20px;
+            animation-delay: 0.5s;
+        }
+        
+        .music-wave:nth-child(3) {
+            width: 20px;
+            height: 20px;
+            animation-delay: 1s;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-sky-300 to-blue-500 min-h-screen">
+    <!-- Fundo da praia -->
+    <div class="absolute inset-0 bg-yellow-100 bottom-1/4 z-1"></div>
+    
+    <!-- Água animada -->
+    <div class="water-animation"></div>
+    
+    <!-- Objetos da praia -->
+    <div class="palm-tree" style="top: 50px; left: 100px;">
+        <svg width="100" height="150" viewBox="0 0 100 150" class="pixel-character">
+            <rect x="45" y="80" width="10" height="70" fill="#8B4513" />
+            <path d="M50 0 C30 30 0 50 30 80 L70 80 C100 50 70 30 50 0" fill="#2E8B57" />
+            <path d="M50 10 C35 35 15 45 35 75 L65 75 C85 45 65 35 50 10" fill="#3CB371" />
+        </svg>
+    </div>
+    
+    <div class="palm-tree" style="top: 30px; right: 80px;">
+        <svg width="120" height="180" viewBox="0 0 100 150" class="pixel-character">
+            <rect x="45" y="80" width="10" height="70" fill="#8B4513" />
+            <path d="M50 0 C30 30 0 50 30 80 L70 80 C100 50 70 30 50 0" fill="#2E8B57" />
+            <path d="M50 10 C35 35 15 45 35 75 L65 75 C85 45 65 35 50 10" fill="#3CB371" />
+        </svg>
+    </div>
+    
+    <div class="umbrella game-object" data-type="sleep" style="top: 150px; left: 200px;">
+        <svg width="120" height="120" viewBox="0 0 120 120" class="pixel-character">
+            <path d="M60 40 L60 120" stroke="#8B4513" stroke-width="4" />
+            <path d="M60 40 C20 40 0 10 0 10 L120 10 C120 10 100 40 60 40" fill="#FF6347" />
+        </svg>
+    </div>
+    
+    <div class="umbrella game-object" data-type="sleep" style="top: 180px; right: 250px;">
+        <svg width="120" height="120" viewBox="0 0 120 120" class="pixel-character">
+            <path d="M60 40 L60 120" stroke="#8B4513" stroke-width="4" />
+            <path d="M60 40 C20 40 0 10 0 10 L120 10 C120 10 100 40 60 40" fill="#4682B4" />
+        </svg>
+    </div>
+    
+    <div class="sand-castle game-object" data-type="tan" style="bottom: 150px; left: 400px;">
+        <svg width="100" height="80" viewBox="0 0 100 80" class="pixel-character">
+            <rect x="10" y="40" width="80" height="40" fill="#D2B48C" />
+            <rect x="20" y="30" width="60" height="10" fill="#D2B48C" />
+            <rect x="30" y="20" width="40" height="10" fill="#D2B48C" />
+            <rect x="40" y="10" width="20" height="10" fill="#D2B48C" />
+            <rect x="15" y="35" width="10" height="10" fill="#8B4513" />
+            <rect x="75" y="35" width="10" height="10" fill="#8B4513" />
+            <rect x="35" y="50" width="30" height="20" fill="#8B4513" />
+        </svg>
+    </div>
+    
+    <!-- Cesta de piquenique para comer -->
+    <div class="game-object" data-type="food" style="bottom: 180px; right: 100px;">
+        <svg width="80" height="60" viewBox="0 0 80 60" class="pixel-character">
+            <rect x="10" y="20" width="60" height="30" fill="#8B4513" />
+            <rect x="15" y="25" width="50" height="20" fill="#DEB887" />
+            <path d="M10 20 C10 10 70 10 70 20" fill="#A52A2A" />
+            <rect x="35" y="10" width="10" height="10" fill="#8B4513" />
+            <circle cx="25" cy="35" r="5" fill="#FF6347" />
+            <circle cx="40" cy="35" r="5" fill="#FFD700" />
+            <circle cx="55" cy="35" r="5" fill="#32CD32" />
+        </svg>
+    </div>
+    
+    <!-- DJ Booth -->
+    <div class="dj-booth game-object" data-type="music" style="bottom: 200px; left: 150px;">
+        <div class="music-waves">
+            <div class="music-wave"></div>
+            <div class="music-wave"></div>
+            <div class="music-wave"></div>
+        </div>
+        <svg width="120" height="100" viewBox="0 0 120 100" class="pixel-character">
+            <!-- Mesa do DJ -->
+            <rect x="20" y="60" width="80" height="40" fill="#333333" />
+            <rect x="25" y="55" width="70" height="5" fill="#555555" />
+            
+            <!-- Equipamento -->
+            <rect x="30" y="65" width="25" height="25" fill="#222222" />
+            <rect x="65" y="65" width="25" height="25" fill="#222222" />
+            
+            <!-- Discos -->
+            <circle cx="42" cy="77" r="10" fill="#111111" />
+            <circle cx="42" cy="77" r="5" fill="#666666" />
+            <circle cx="42" cy="77" r="2" fill="#111111" />
+            
+            <circle cx="78" cy="77" r="10" fill="#111111" />
+            <circle cx="78" cy="77" r="5" fill="#666666" />
+            <circle cx="78" cy="77" r="2" fill="#111111" />
+            
+            <!-- DJ -->
+            <rect x="50" y="30" width="20" height="20" fill="#FFDAB9" />
+            <rect x="45" y="35" width="5" height="10" fill="#FFDAB9" />
+            <rect x="70" y="35" width="5" height="10" fill="#FFDAB9" />
+            <rect x="50" y="50" width="20" height="15" fill="#ec4899" />
+            <rect x="52" y="35" width="4" height="4" fill="#111111" />
+            <rect x="64" y="35" width="4" height="4" fill="#111111" />
+            <rect x="56" y="43" width="8" height="2" fill="#111111" />
+            
+            <!-- Fones de ouvido -->
+            <path d="M50 30 C40 30 40 40 40 40 L45 40 L45 35 L50 35" fill="#333333" />
+            <path d="M70 30 C80 30 80 40 80 40 L75 40 L75 35 L70 35" fill="#333333" />
+            <rect x="40" y="35" width="5" height="5" fill="#ec4899" />
+            <rect x="75" y="35" width="5" height="5" fill="#ec4899" />
+        </svg>
+        <div class="dj-character dj-animation"></div>
+    </div>
+    
+    <!-- Interface do jogo -->
+    <div class="fixed top-0 left-0 right-0 bg-pink-600 text-white p-3 flex justify-between items-center z-50">
+        <div class="text-xl font-bold">PRAIOSA</div>
+        <div id="player-name" class="text-lg"></div>
+    </div>
+    
+    <!-- Área de seleção de avatar -->
+    <div id="avatar-selection" class="fixed inset-0 flex flex-col items-center justify-center bg-pink-500 bg-opacity-90 z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full">
+            <h2 class="text-2xl font-bold text-center mb-6 text-pink-600">Bem-vindo à PRAIOSA</h2>
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2">Seu nome:</label>
+                <input id="username-input" type="text" class="w-full p-2 border border-gray-300 rounded" placeholder="Digite seu nome">
+            </div>
+            <div class="grid grid-cols-5 gap-4 mb-6">
+                <div class="avatar-option cursor-pointer p-2 rounded hover:bg-pink-100" data-type="1">
+                    <div class="pixel-avatar mx-auto">
+                        <svg width="48" height="64" viewBox="0 0 48 64" class="pixel-character">
+                            <!-- Jason - Guerreiro vermelho -->
+                            <rect x="16" y="8" width="16" height="16" fill="#FF6B6B" />
+                            <rect x="16" y="24" width="16" height="16" fill="#FF4040" />
+                            <rect x="16" y="40" width="8" height="16" fill="#8B0000" />
+                            <rect x="24" y="40" width="8" height="16" fill="#8B0000" />
+                            <rect x="18" y="12" width="4" height="4" fill="black" />
+                            <rect x="26" y="12" width="4" height="4" fill="black" />
+                            <rect x="20" y="20" width="8" height="2" fill="black" />
+                            <rect x="12" y="16" width="4" height="8" fill="#FF6B6B" />
+                            <rect x="32" y="16" width="4" height="8" fill="#FF6B6B" />
+                            <rect x="14" y="4" width="20" height="8" fill="#A52A2A" />
+                        </svg>
+                    </div>
+                    <p class="text-center mt-2 text-sm">Jason</p>
+                </div>
+                <div class="avatar-option cursor-pointer p-2 rounded hover:bg-pink-100" data-type="2">
+                    <div class="pixel-avatar mx-auto">
+                        <svg width="48" height="64" viewBox="0 0 48 64" class="pixel-character">
+                            <!-- Frank - Mago azul -->
+                            <rect x="16" y="8" width="16" height="16" fill="#87CEFA" />
+                            <rect x="16" y="24" width="16" height="16" fill="#4169E1" />
+                            <rect x="16" y="40" width="8" height="16" fill="#000080" />
+                            <rect x="24" y="40" width="8" height="16" fill="#000080" />
+                            <rect x="18" y="12" width="4" height="4" fill="black" />
+                            <rect x="26" y="12" width="4" height="4" fill="black" />
+                            <rect x="20" y="20" width="8" height="2" fill="black" />
+                            <rect x="12" y="16" width="4" height="8" fill="#4169E1" />
+                            <rect x="32" y="16" width="4" height="8" fill="#4169E1" />
+                            <rect x="14" y="2" width="20" height="10" fill="#6A5ACD" />
+                        </svg>
+                    </div>
+                    <p class="text-center mt-2 text-sm">Frank</p>
+                </div>
+                <div class="avatar-option cursor-pointer p-2 rounded hover:bg-pink-100" data-type="3">
+                    <div class="pixel-avatar mx-auto">
+                        <svg width="48" height="64" viewBox="0 0 48 64" class="pixel-character">
+                            <!-- Betty - Arqueira verde -->
+                            <rect x="16" y="8" width="16" height="16" fill="#FFDAB9" />
+                            <rect x="16" y="24" width="16" height="16" fill="#3CB371" />
+                            <rect x="16" y="40" width="8" height="16" fill="#2E8B57" />
+                            <rect x="24" y="40" width="8" height="16" fill="#2E8B57" />
+                            <rect x="18" y="12" width="4" height="4" fill="black" />
+                            <rect x="26" y="12" width="4" height="4" fill="black" />
+                            <rect x="20" y="20" width="8" height="2" fill="black" />
+                            <rect x="12" y="16" width="4" height="8" fill="#3CB371" />
+                            <rect x="32" y="16" width="4" height="8" fill="#3CB371" />
+                            <rect x="16" y="4" width="16" height="6" fill="#FFD700" />
+                            <rect x="14" y="6" width="2" height="10" fill="#FFD700" />
+                            <rect x="32" y="6" width="2" height="10" fill="#FFD700" />
+                        </svg>
+                    </div>
+                    <p class="text-center mt-2 text-sm">Betty</p>
+                </div>
+                <div class="avatar-option cursor-pointer p-2 rounded hover:bg-pink-100" data-type="4">
+                    <div class="pixel-avatar mx-auto">
+                        <svg width="48" height="64" viewBox="0 0 48 64" class="pixel-character">
+                            <!-- Alisson - Curandeira rosa -->
+                            <rect x="16" y="8" width="16" height="16" fill="#FFDAB9" />
+                            <rect x="16" y="24" width="16" height="16" fill="#DDA0DD" />
+                            <rect x="16" y="40" width="8" height="16" fill="#9370DB" />
+                            <rect x="24" y="40" width="8" height="16" fill="#9370DB" />
+                            <rect x="18" y="12" width="4" height="4" fill="black" />
+                            <rect x="26" y="12" width="4" height="4" fill="black" />
+                            <rect x="20" y="20" width="8" height="2" fill="black" />
+                            <rect x="12" y="16" width="4" height="8" fill="#DDA0DD" />
+                            <rect x="32" y="16" width="4" height="8" fill="#DDA0DD" />
+                            <rect x="16" y="2" width="16" height="8" fill="#FF69B4" />
+                            <rect x="22" y="0" width="4" height="4" fill="white" />
+                        </svg>
+                    </div>
+                    <p class="text-center mt-2 text-sm">Alisson</p>
+                </div>
+                <div class="avatar-option cursor-pointer p-2 rounded hover:bg-pink-100" data-type="5">
+                    <div class="pixel-avatar mx-auto">
+                        <svg width="48" height="64" viewBox="0 0 48 64" class="pixel-character">
+                            <!-- Fredie - Ladrão roxo -->
+                            <rect x="16" y="8" width="16" height="16" fill="#FFDAB9" />
+                            <rect x="16" y="24" width="16" height="16" fill="#483D8B" />
+                            <rect x="16" y="40" width="8" height="16" fill="#2F4F4F" />
+                            <rect x="24" y="40" width="8" height="16" fill="#2F4F4F" />
+                            <rect x="18" y="12" width="4" height="4" fill="black" />
+                            <rect x="26" y="12" width="4" height="4" fill="black" />
+                            <rect x="20" y="20" width="8" height="2" fill="black" />
+                            <rect x="12" y="16" width="4" height="8" fill="#483D8B" />
+                            <rect x="32" y="16" width="4" height="8" fill="#483D8B" />
+                            <rect x="16" y="4" width="16" height="4" fill="#696969" />
+                            <rect x="14" y="8" width="2" height="4" fill="#696969" />
+                            <rect x="32" y="8" width="2" height="4" fill="#696969" />
+                        </svg>
+                    </div>
+                    <p class="text-center mt-2 text-sm">Fredie</p>
+                </div>
+            </div>
+            <button id="start-game" class="w-full bg-pink-600 text-white py-2 rounded hover:bg-pink-700 transition disabled:opacity-50" disabled>Começar</button>
+        </div>
+    </div>
+    
+    <!-- Área de chat -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white p-3 flex items-center z-40">
+        <input id="chat-input" type="text" class="flex-grow p-2 border border-gray-300 rounded-l" placeholder="Digite sua mensagem...">
+        <button id="send-chat" class="bg-pink-600 text-white px-4 py-2 rounded-r hover:bg-pink-700">Enviar</button>
+    </div>
+    
+    <!-- Controle de música -->
+    <div class="fixed bottom-20 left-0 right-0 bg-white bg-opacity-80 p-3 flex items-center z-40 shadow-md">
+        <div class="flex items-center w-full">
+            <span class="text-pink-600 mr-2">🎵</span>
+            <div class="flex-grow h-4 bg-gray-200 rounded-full overflow-hidden">
+                <div id="music-progress" class="h-full bg-pink-500" style="width: 0%"></div>
+            </div>
+            <div class="ml-4 flex space-x-2">
+                <button id="music-toggle" class="bg-pink-600 text-white px-3 py-1 rounded hover:bg-pink-700 text-sm">
+                    ▶️ Play
+                </button>
+                <button id="music-volume-down" class="bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300 text-sm">
+                    🔉
+                </button>
+                <button id="music-volume-up" class="bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300 text-sm">
+                    🔊
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Legenda das necessidades -->
+    <div class="fixed top-16 left-4 bg-white bg-opacity-80 p-2 rounded shadow-md z-40">
+        <h3 class="font-bold mb-1">Necessidades:</h3>
+        <div class="flex items-center mb-1">
+            <div class="w-3 h-3 bg-blue-500 mr-2"></div>
+            <span class="text-sm">Sede - Entre na água</span>
+        </div>
+        <div class="flex items-center mb-1">
+            <div class="w-3 h-3 bg-green-500 mr-2"></div>
+            <span class="text-sm">Fome - Coma na cesta</span>
+        </div>
+        <div class="flex items-center mb-1">
+            <div class="w-3 h-3 bg-yellow-500 mr-2"></div>
+            <span class="text-sm">Energia - Descanse no guarda-sol</span>
+        </div>
+        <div class="flex items-center mb-1">
+            <div class="w-3 h-3 bg-orange-500 mr-2"></div>
+            <span class="text-sm">Bronze - Fique no castelo</span>
+        </div>
+        <div class="flex items-center">
+            <div class="w-3 h-3 bg-pink-500 mr-2"></div>
+            <span class="text-sm">Música - Dance com o DJ</span>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const gameArea = document.body;
+            const avatarSelection = document.getElementById('avatar-selection');
+            const usernameInput = document.getElementById('username-input');
+            const startGameButton = document.getElementById('start-game');
+            const playerNameDisplay = document.getElementById('player-name');
+            const chatInput = document.getElementById('chat-input');
+            const sendChatButton = document.getElementById('send-chat');
+            const musicToggle = document.getElementById('music-toggle');
+            const musicVolumeUp = document.getElementById('music-volume-up');
+            const musicVolumeDown = document.getElementById('music-volume-down');
+            const musicProgress = document.getElementById('music-progress');
+            
+            let selectedAvatarType = null;
+            let playerAvatar = null;
+            let playerName = '';
+            let musicPlaying = false;
+            let musicVolume = 50; // 0-100
+            
+            // Necessidades do jogador
+            let playerNeeds = {
+                thirst: 100,  // Sede
+                hunger: 100,  // Fome
+                energy: 100,  // Energia
+                tan: 0,       // Bronze
+                music: 0      // Música
+            };
+            
+            // Configuração do avatar
+            const avatarOptions = document.querySelectorAll('.avatar-option');
+            avatarOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    avatarOptions.forEach(opt => opt.classList.remove('selection-highlight'));
+                    this.classList.add('selection-highlight');
+                    selectedAvatarType = this.getAttribute('data-type');
+                    checkStartGameButton();
+                });
+            });
+            
+            usernameInput.addEventListener('input', checkStartGameButton);
+            
+            function checkStartGameButton() {
+                if (usernameInput.value.trim() !== '' && selectedAvatarType !== null) {
+                    startGameButton.disabled = false;
+                } else {
+                    startGameButton.disabled = true;
+                }
+            }
+            
+            startGameButton.addEventListener('click', function() {
+                playerName = usernameInput.value.trim();
+                playerNameDisplay.textContent = playerName;
+                avatarSelection.style.display = 'none';
+                createPlayerAvatar();
+                startNeedsSystem();
+                startMusicSystem();
+            });
+            
+            function createPlayerAvatar() {
+                const avatarNames = {
+                    '1': 'Jason',
+                    '2': 'Frank',
+                    '3': 'Betty',
+                    '4': 'Alisson',
+                    '5': 'Fredie'
+                };
+                
+                playerAvatar = document.createElement('div');
+                playerAvatar.className = 'avatar';
+                playerAvatar.style.left = '50%';
+                playerAvatar.style.top = '50%';
+                
+                // Criar o SVG do avatar selecionado
+                const svgContainer = document.createElement('div');
+                svgContainer.className = 'pixel-avatar';
+                
+                // Copiar o SVG do avatar selecionado
+                const selectedAvatarSVG = document.querySelector(`.avatar-option[data-type="${selectedAvatarType}"] svg`).cloneNode(true);
+                svgContainer.appendChild(selectedAvatarSVG);
+                
+                const chatBubble = document.createElement('div');
+                chatBubble.className = 'chat-bubble';
+                
+                // Criar barras de necessidades
+                const needsContainer = document.createElement('div');
+                needsContainer.className = 'needs-container';
+                
+                // Barra de sede
+                const thirstContainer = document.createElement('div');
+                thirstContainer.className = 'need-bar-container relative';
+                const thirstBar = document.createElement('div');
+                thirstBar.className = 'need-bar need-thirst';
+                thirstBar.style.width = '100%';
+                const thirstIcon = document.createElement('span');
+                thirstIcon.className = 'need-icon';
+                thirstIcon.textContent = '💧';
+                thirstContainer.appendChild(thirstBar);
+                thirstContainer.appendChild(thirstIcon);
+                
+                // Barra de fome
+                const hungerContainer = document.createElement('div');
+                hungerContainer.className = 'need-bar-container relative';
+                const hungerBar = document.createElement('div');
+                hungerBar.className = 'need-bar need-hunger';
+                hungerBar.style.width = '100%';
+                const hungerIcon = document.createElement('span');
+                hungerIcon.className = 'need-icon';
+                hungerIcon.textContent = '🍔';
+                hungerContainer.appendChild(hungerBar);
+                hungerContainer.appendChild(hungerIcon);
+                
+                // Barra de energia
+                const energyContainer = document.createElement('div');
+                energyContainer.className = 'need-bar-container relative';
+                const energyBar = document.createElement('div');
+                energyBar.className = 'need-bar need-energy';
+                energyBar.style.width = '100%';
+                const energyIcon = document.createElement('span');
+                energyIcon.className = 'need-icon';
+                energyIcon.textContent = '💤';
+                energyContainer.appendChild(energyBar);
+                energyContainer.appendChild(energyIcon);
+                
+                // Barra de bronze
+                const tanContainer = document.createElement('div');
+                tanContainer.className = 'need-bar-container relative';
+                const tanBar = document.createElement('div');
+                tanBar.className = 'need-bar need-tan';
+                tanBar.style.width = '0%';
+                const tanIcon = document.createElement('span');
+                tanIcon.className = 'need-icon';
+                tanIcon.textContent = '☀️';
+                tanContainer.appendChild(tanBar);
+                tanContainer.appendChild(tanIcon);
+                
+                // Barra de música
+                const musicContainer = document.createElement('div');
+                musicContainer.className = 'need-bar-container relative';
+                const musicBar = document.createElement('div');
+                musicBar.className = 'need-bar need-music';
+                musicBar.style.width = '0%';
+                const musicIcon = document.createElement('span');
+                musicIcon.className = 'need-icon';
+                musicIcon.textContent = '🎵';
+                musicContainer.appendChild(musicBar);
+                musicContainer.appendChild(musicIcon);
+                
+                needsContainer.appendChild(thirstContainer);
+                needsContainer.appendChild(hungerContainer);
+                needsContainer.appendChild(energyContainer);
+                needsContainer.appendChild(tanContainer);
+                needsContainer.appendChild(musicContainer);
+                
+                playerAvatar.appendChild(svgContainer);
+                playerAvatar.appendChild(chatBubble);
+                playerAvatar.appendChild(needsContainer);
+                
+                gameArea.appendChild(playerAvatar);
+                
+                // Adicionar nome do jogador acima do avatar
+                const nameTag = document.createElement('div');
+                nameTag.className = 'text-center text-xs font-bold bg-white bg-opacity-70 rounded px-1 absolute';
+                nameTag.style.bottom = '70px';
+                nameTag.style.left = '50%';
+                nameTag.style.transform = 'translateX(-50%)';
+                nameTag.style.whiteSpace = 'nowrap';
+                nameTag.textContent = playerName;
+                playerAvatar.appendChild(nameTag);
+                
+                // Adicionar tipo de personagem abaixo do nome
+                const characterType = document.createElement('div');
+                characterType.className = 'text-center text-xs text-gray-700 bg-white bg-opacity-70 rounded px-1 absolute';
+                characterType.style.bottom = '55px';
+                characterType.style.left = '50%';
+                characterType.style.transform = 'translateX(-50%)';
+                characterType.style.whiteSpace = 'nowrap';
+                characterType.textContent = avatarNames[selectedAvatarType];
+                playerAvatar.appendChild(characterType);
+            }
+            
+            function startNeedsSystem() {
+                // Atualizar as barras de necessidades
+                function updateNeedsBars() {
+                    if (!playerAvatar) return;
+                    
+                    const thirstBar = playerAvatar.querySelector('.need-thirst');
+                    const hungerBar = playerAvatar.querySelector('.need-hunger');
+                    const energyBar = playerAvatar.querySelector('.need-energy');
+                    const tanBar = playerAvatar.querySelector('.need-tan');
+                    const musicBar = playerAvatar.querySelector('.need-music');
+                    
+                    thirstBar.style.width = `${playerNeeds.thirst}%`;
+                    hungerBar.style.width = `${playerNeeds.hunger}%`;
+                    energyBar.style.width = `${playerNeeds.energy}%`;
+                    tanBar.style.width = `${playerNeeds.tan}%`;
+                    musicBar.style.width = `${playerNeeds.music}%`;
+                    
+                    // Verificar se alguma necessidade está crítica
+                    if (playerNeeds.thirst < 20 || playerNeeds.hunger < 20 || playerNeeds.energy < 20) {
+                        const chatBubble = playerAvatar.querySelector('.chat-bubble');
+                        
+                        if (playerNeeds.thirst < 20) {
+                            chatBubble.textContent = "Estou com sede!";
+                        } else if (playerNeeds.hunger < 20) {
+                            chatBubble.textContent = "Estou com fome!";
+                        } else if (playerNeeds.energy < 20) {
+                            chatBubble.textContent = "Estou cansado!";
+                        }
+                        
+                        chatBubble.style.opacity = '1';
+                        
+                        setTimeout(() => {
+                            chatBubble.style.opacity = '0';
+                        }, 3000);
+                    }
+                    
+                    // Verificar se a música está alta
+                    if (playerNeeds.music > 80) {
+                        const djBooth = document.querySelector('.dj-booth');
+                        const musicWaves = djBooth.querySelector('.music-waves');
+                        musicWaves.classList.add('active');
+                    } else {
+                        const djBooth = document.querySelector('.dj-booth');
+                        const musicWaves = djBooth.querySelector('.music-waves');
+                        musicWaves.classList.remove('active');
+                    }
+                }
+                
+                // Diminuir as necessidades com o tempo
+                const needsInterval = setInterval(() => {
+                    // Diminuir sede mais rápido
+                    playerNeeds.thirst = Math.max(0, playerNeeds.thirst - 2);
+                    
+                    // Diminuir fome gradualmente
+                    playerNeeds.hunger = Math.max(0, playerNeeds.hunger - 1);
+                    
+                    // Diminuir energia lentamente
+                    playerNeeds.energy = Math.max(0, playerNeeds.energy - 0.5);
+                    
+                    // Diminuir música gradualmente
+                    playerNeeds.music = Math.max(0, playerNeeds.music - 1);
+                    
+                    // Verificar se o jogador está na praia (fora da água)
+                    const avatarPosition = playerAvatar.getBoundingClientRect();
+                    const waterLine = window.innerHeight - 120;
+                    
+                    // Se estiver na praia e não sob um guarda-sol, aumentar o bronze
+                    if (avatarPosition.bottom < waterLine) {
+                        // Verificar se está sob um guarda-sol
+                        let underUmbrella = false;
+                        const umbrellas = document.querySelectorAll('.umbrella');
+                        umbrellas.forEach(umbrella => {
+                            const umbrellaRect = umbrella.getBoundingClientRect();
+                            if (
+                                avatarPosition.left > umbrellaRect.left - 30 &&
+                                avatarPosition.right < umbrellaRect.right + 30 &&
+                                avatarPosition.top > umbrellaRect.top &&
+                                avatarPosition.bottom < umbrellaRect.bottom + 50
+                            ) {
+                                underUmbrella = true;
+                            }
+                        });
+                        
+                        if (!underUmbrella) {
+                            playerNeeds.tan = Math.min(100, playerNeeds.tan + 1);
+                        } else {
+                            // Sob o guarda-sol, o bronze diminui lentamente
+                            playerNeeds.tan = Math.max(0, playerNeeds.tan - 0.5);
+                        }
+                    } else {
+                        // Na água, o bronze diminui
+                        playerNeeds.tan = Math.max(0, playerNeeds.tan - 1);
+                        // Na água, a sede é recuperada
+                        playerNeeds.thirst = Math.min(100, playerNeeds.thirst + 5);
+                    }
+                    
+                    // Verificar se está perto do DJ
+                    const djBooth = document.querySelector('.dj-booth');
+                    const djRect = djBooth.getBoundingClientRect();
+                    if (
+                        avatarPosition.left > djRect.left - 50 &&
+                        avatarPosition.right < djRect.right + 50 &&
+                        avatarPosition.top > djRect.top - 50 &&
+                        avatarPosition.bottom < djRect.bottom + 50 &&
+                        musicPlaying
+                    ) {
+                        playerNeeds.music = Math.min(100, playerNeeds.music + 5);
+                        
+                        // Fazer o avatar dançar quando a música estiver tocando
+                        const avatarSvg = playerAvatar.querySelector('.pixel-avatar');
+                        if (!avatarSvg.classList.contains('dj-animation')) {
+                            avatarSvg.classList.add('dj-animation');
+                        }
+                    } else {
+                        // Parar de dançar quando se afastar do DJ
+                        const avatarSvg = playerAvatar.querySelector('.pixel-avatar');
+                        avatarSvg.classList.remove('dj-animation');
+                    }
+                    
+                    updateNeedsBars();
+                }, 1000);
+            }
+            
+            function startMusicSystem() {
+                // Configurar o DJ e a música
+                const djBooth = document.querySelector('.dj-booth');
+                const musicWaves = djBooth.querySelector('.music-waves');
+                
+                // Adicionar ondas de música
+                for (let i = 0; i < 3; i++) {
+                    const wave = document.createElement('div');
+                    wave.className = 'music-wave';
+                    wave.style.left = '60px';
+                    wave.style.top = '30px';
+                    musicWaves.appendChild(wave);
+                }
+                
+                // Controle de música
+                musicToggle.addEventListener('click', function() {
+                    musicPlaying = !musicPlaying;
+                    
+                    if (musicPlaying) {
+                        this.textContent = '⏸️ Pause';
+                        djBooth.querySelector('.dj-character').classList.add('dj-animation');
+                        startMusicProgressBar();
+                    } else {
+                        this.textContent = '▶️ Play';
+                        djBooth.querySelector('.dj-character').classList.remove('dj-animation');
+                        stopMusicProgressBar();
+                    }
+                });
+                
+                musicVolumeUp.addEventListener('click', function() {
+                    musicVolume = Math.min(100, musicVolume + 10);
+                    updateMusicVolume();
+                });
+                
+                musicVolumeDown.addEventListener('click', function() {
+                    musicVolume = Math.max(0, musicVolume - 10);
+                    updateMusicVolume();
+                });
+                
+                let progressInterval;
+                let currentProgress = 0;
+                
+                function startMusicProgressBar() {
+                    stopMusicProgressBar();
+                    progressInterval = setInterval(() => {
+                        currentProgress = (currentProgress + 1) % 100;
+                        musicProgress.style.width = `${currentProgress}%`;
+                    }, 1000);
+                }
+                
+                function stopMusicProgressBar() {
+                    if (progressInterval) {
+                        clearInterval(progressInterval);
+                    }
+                }
+                
+                function updateMusicVolume() {
+                    // Atualizar visualmente o volume
+                    if (musicVolume === 0) {
+                        musicVolumeDown.textContent = '🔇';
+                    } else {
+                        musicVolumeDown.textContent = '🔉';
+                    }
+                    
+                    if (musicVolume === 100) {
+                        musicVolumeUp.textContent = '🔊';
+                    } else {
+                        musicVolumeUp.textContent = '🔊';
+                    }
+                }
+            }
+            
+            // Sistema de movimento
+            gameArea.addEventListener('click', function(e) {
+                if (!playerAvatar || avatarSelection.style.display !== 'none') return;
+                
+                // Não permitir cliques na interface
+                if (e.target.closest('.fixed')) return;
+                
+                const rect = gameArea.getBoundingClientRect();
+                const x = e.clientX - 24; // Centralizar o avatar no clique
+                const y = e.clientY - 32;
+                
+                playerAvatar.style.left = x + 'px';
+                playerAvatar.style.top = y + 'px';
+            });
+            
+            // Sistema de chat
+            function sendChat() {
+                if (!playerAvatar) return;
+                
+                const message = chatInput.value.trim();
+                if (message === '') return;
+                
+                const chatBubble = playerAvatar.querySelector('.chat-bubble');
+                chatBubble.textContent = message;
+                chatBubble.style.opacity = '1';
+                
+                chatInput.value = '';
+                
+                // Esconder a mensagem após alguns segundos
+                setTimeout(() => {
+                    chatBubble.style.opacity = '0';
+                }, 5000);
+            }
+            
+            sendChatButton.addEventListener('click', sendChat);
+            chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendChat();
+                }
+            });
+            
+            // Adicionar objetos interativos
+            const gameObjects = document.querySelectorAll('.game-object');
+            gameObjects.forEach(obj => {
+                obj.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Evitar movimento do avatar
+                    
+                    if (!playerAvatar) return;
+                    
+                    // Mover o avatar para perto do objeto
+                    const objRect = obj.getBoundingClientRect();
+                    const x = objRect.left + (objRect.width / 2) - 24;
+                    const y = objRect.top + objRect.height - 32;
+                    
+                    playerAvatar.style.left = x + 'px';
+                    playerAvatar.style.top = y + 'px';
+                    
+                    // Interagir com o objeto baseado no tipo
+                    const objectType = obj.getAttribute('data-type');
+                    const chatBubble = playerAvatar.querySelector('.chat-bubble');
+                    
+                    if (objectType === 'sleep') {
+                        // Descansar sob o guarda-sol
+                        playerNeeds.energy = Math.min(100, playerNeeds.energy + 30);
+                        chatBubble.textContent = "Que relaxante!";
+                    } else if (objectType === 'tan') {
+                        // Bronzear no castelo de areia
+                        playerNeeds.tan = Math.min(100, playerNeeds.tan + 20);
+                        chatBubble.textContent = "Pegando um bronze!";
+                    } else if (objectType === 'food') {
+                        // Comer na cesta de piquenique
+                        playerNeeds.hunger = Math.min(100, playerNeeds.hunger + 40);
+                        chatBubble.textContent = "Delicioso!";
+                    } else if (objectType === 'music') {
+                        // Interagir com o DJ
+                        if (musicPlaying) {
+                            playerNeeds.music = Math.min(100, playerNeeds.music + 30);
+                            chatBubble.textContent = "Essa batida é incrível!";
+                            
+                            // Fazer o avatar dançar
+                            const avatarSvg = playerAvatar.querySelector('.pixel-avatar');
+                            avatarSvg.classList.add('dj-animation');
+                        } else {
+                            chatBubble.textContent = "Cadê a música? Aperte play!";
+                        }
+                    }
+                    
+                    chatBubble.style.opacity = '1';
+                    
+                    setTimeout(() => {
+                        chatBubble.style.opacity = '0';
+                    }, 3000);
+                });
+            });
+            
+            // Adicionar cesta de piquenique para comer
+            document.querySelector('[data-type="food"]').addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                if (!playerAvatar) return;
+                
+                // Mover o avatar para perto da cesta
+                const objRect = this.getBoundingClientRect();
+                const x = objRect.left + (objRect.width / 2) - 24;
+                const y = objRect.top + objRect.height - 32;
+                
+                playerAvatar.style.left = x + 'px';
+                playerAvatar.style.top = y + 'px';
+                
+                // Recuperar fome
+                playerNeeds.hunger = Math.min(100, playerNeeds.hunger + 40);
+                
+                // Mostrar mensagem
+                const chatBubble = playerAvatar.querySelector('.chat-bubble');
+                chatBubble.textContent = "Que comida deliciosa!";
+                chatBubble.style.opacity = '1';
+                
+                setTimeout(() => {
+                    chatBubble.style.opacity = '0';
+                }, 3000);
+            });
+        });
+    </script>
+</body>
+</html>
